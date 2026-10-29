@@ -33,7 +33,16 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _remaining = _state.lockRemaining;
     if (_remaining > Duration.zero) _startTicker();
-    if (_state.photoOnWrong) _camera.prepare();
+    _askCameraPermissionOnce();
+  }
+
+  /// The camera permission is asked the first time, so a permission box never
+  /// pops up in the middle of a wrong PIN. The camera closes again right away.
+  Future<void> _askCameraPermissionOnce() async {
+    if (!_state.photoOnWrong || _state.cameraPrompted) return;
+    await _camera.prepare();
+    await _state.markCameraPrompted();
+    await _camera.release();
   }
 
   @override
@@ -48,11 +57,7 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState lifecycle) {
-    if (lifecycle == AppLifecycleState.paused) {
-      _camera.release();
-    } else if (lifecycle == AppLifecycleState.resumed && _state.photoOnWrong) {
-      _camera.prepare();
-    }
+    if (lifecycle == AppLifecycleState.paused) _camera.release();
   }
 
   void _startTicker() {

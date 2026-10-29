@@ -28,6 +28,7 @@ class AppState extends ChangeNotifier {
   static const _kFamilyOn = 'family_on';
   static const _kPhoto = 'photo_on_wrong';
   static const _kPhoneLock = 'phone_lock_on';
+  static const _kCameraAsked = 'camera_asked';
   static const _kTheme = 'theme_mode';
   static const _kFails = 'fail_count';
   static const _kLockUntil = 'lock_until';
@@ -170,6 +171,10 @@ class AppState extends ChangeNotifier {
     await _prefs.setBool(_kPhoto, value);
     notifyListeners();
   }
+
+  bool get cameraPrompted => _prefs.getBool(_kCameraAsked) ?? false;
+
+  Future<void> markCameraPrompted() => _prefs.setBool(_kCameraAsked, true);
 
   /// Photo on the phone's own lock screen. The Android side keeps its own copy
   /// of this switch, because it must work while the app is closed.

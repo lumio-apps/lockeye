@@ -41,8 +41,14 @@ ThemeData buildTheme(Brightness brightness) {
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: scheme.surface,
       surfaceTintColor: Colors.transparent,
-      indicatorColor: scheme.primary.withValues(alpha: 0.16),
+      indicatorColor: scheme.primary.withValues(alpha: dark ? 0.22 : 0.14),
       height: 72,
+      iconTheme: WidgetStateProperty.resolveWith(
+        (states) => IconThemeData(
+          size: 24,
+          color: states.contains(WidgetState.selected) ? scheme.primary : scheme.onSurfaceVariant,
+        ),
+      ),
       labelTextStyle: WidgetStatePropertyAll(
         TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: scheme.onSurface),
       ),

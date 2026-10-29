@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -9,6 +10,12 @@ import 'package:path_provider/path_provider.dart';
 
 /// Build with `--dart-define=SELF_UPDATE=false` to turn the in-app updater off.
 const bool kSelfUpdate = bool.fromEnvironment('SELF_UPDATE', defaultValue: true);
+
+class _UpdateError implements Exception {
+  const _UpdateError(this.status);
+
+  final int status;
+}
 
 /// Checks GitHub Releases for a newer APK and installs it inside the app.
 /// Updating keeps all vault data: the app is replaced, its data stays.
@@ -28,7 +35,7 @@ class UpdateService {
       final res = await http
           .get(Uri.parse(_latestReleaseUrl), headers: {'Accept': 'application/vnd.github+json'})
           .timeout(const Duration(seconds: 15));
-      if (res.statusCode != 200) throw Exception('Server returned ${res.statusCode}');
+      if (res.statusCode != 200) throw _UpdateError(res.statusCode);
 
       final data = jsonDecode(res.body) as Map<String, dynamic>;
       final latestTag = (data['tag_name'] as String? ?? '').trim();
@@ -67,13 +74,30 @@ class UpdateService {
       if (install != true || !context.mounted) return;
 
       await _downloadAndInstall(context, apk['browser_download_url'] as String);
-    } catch (_) {
+    } catch (error) {
       if (!context.mounted) return;
       messenger.hideCurrentSnackBar();
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Could not check for updates. Check your internet connection.')),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(describeError(error))));
     }
+  }
+
+  /// A short, honest reason for a failed check.
+  static String describeError(Object error) {
+    if (error is _UpdateError) {
+      switch (error.status) {
+        case 404:
+          return 'No release found on GitHub yet (error 404). The repository must be public and a release published.';
+        case 403:
+        case 429:
+          return 'GitHub is limiting requests right now (error ${error.status}). Try again in a few minutes.';
+        default:
+          return 'GitHub answered with error ${error.status}. Try again later.';
+      }
+    }
+    if (error is SocketException || error is http.ClientException || error is TimeoutException) {
+      return 'Could not reach GitHub. Check your internet connection.';
+    }
+    return 'Could not check for updates. Try again later.';
   }
 
   static Future<void> _downloadAndInstall(BuildContext context, String url) async {

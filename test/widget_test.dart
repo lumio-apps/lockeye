@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lockeye/core/format.dart';
 import 'package:lockeye/core/models.dart';
@@ -33,6 +35,16 @@ void main() {
       expect(UpdateService.isNewer('1.0.0', '1.0.0'), isFalse);
       expect(UpdateService.isNewer('1.0.1', '1.1.0'), isFalse);
       expect(UpdateService.isNewer('2.0.0', '1.9.9+4'), isTrue);
+    });
+  });
+
+  group('UpdateService.describeError', () {
+    test('explains network problems', () {
+      expect(UpdateService.describeError(const SocketException('x')), contains('Could not reach GitHub'));
+    });
+
+    test('falls back to a generic message', () {
+      expect(UpdateService.describeError(StateError('x')), contains('Could not check'));
     });
   });
 

@@ -4,12 +4,13 @@ import 'package:camera/camera.dart';
 import 'package:path_provider/path_provider.dart';
 
 /// Takes a photo with the front camera, without showing any preview.
-/// The camera is warmed up while the lock screen is open, so the photo is
-/// ready the moment a wrong PIN is typed.
+/// The camera is opened only for the photo and closed right after, so Android's
+/// green camera dot does not sit on the lock screen all the time.
 class IntruderService {
   CameraController? _controller;
   Future<bool>? _preparing;
   DateTime? _readyAt;
+  Future<void> _queue = Future<void>.value();
 
   /// Opens the front camera. Asks for the camera permission the first time.
   /// Returns false when there is no front camera or the permission is denied.
@@ -39,7 +40,22 @@ class IntruderService {
   }
 
   /// Returns the saved photo path, or null if no photo could be taken.
-  Future<String?> capture(String id) async {
+  /// Photos are taken one after another, never at the same time.
+  Future<String?> capture(String id) {
+    final run = _queue.then((_) => _captureOnce(id));
+    _queue = run.then<void>((_) {}, onError: (_) {});
+    return run;
+  }
+
+  Future<String?> _captureOnce(String id) async {
+    try {
+      return await _shoot(id);
+    } finally {
+      await release();
+    }
+  }
+
+  Future<String?> _shoot(String id) async {
     final ok = await prepare();
     final controller = _controller;
     if (!ok || controller == null || !controller.value.isInitialized) return null;
@@ -47,7 +63,7 @@ class IntruderService {
     // Give auto exposure a moment after the camera opened.
     final readyAt = _readyAt;
     if (readyAt != null) {
-      final wait = 500 - DateTime.now().difference(readyAt).inMilliseconds;
+      final wait = 600 - DateTime.now().difference(readyAt).inMilliseconds;
       if (wait > 0) await Future<void>.delayed(Duration(milliseconds: wait));
     }
 

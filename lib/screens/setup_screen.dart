@@ -30,6 +30,7 @@ class _SetupScreenState extends State<SetupScreen> {
     final camera = IntruderService();
     await camera.prepare();
     await camera.release();
+    await widget.state.markCameraPrompted();
     await widget.state.completeSetup(_minePin, familyPin: familyPin);
   }
 
