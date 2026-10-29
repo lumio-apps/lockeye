@@ -1,0 +1,28 @@
+name: lockeye
+description: A private vault that photographs wrong PIN attempts. Offline and open source.
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  camera: ">=0.11.0 <0.13.0"
+  crypto: ">=3.0.3 <4.0.0"
+  file_picker: ">=8.0.0 <11.0.0"
+  http: ">=1.2.0 <2.0.0"
+  open_filex: ">=4.5.0 <5.0.0"
+  package_info_plus: ">=8.0.0 <11.0.0"
+  path_provider: ">=2.1.0 <3.0.0"
+  shared_preferences: ">=2.2.0 <3.0.0"
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ">=6.0.0 <7.0.0"
+  flutter_launcher_icons: ">=0.14.0 <0.15.0"
+
+flutter:
+  uses-material-design: true

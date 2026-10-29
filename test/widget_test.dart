@@ -1,0 +1,58 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:lockeye/core/format.dart';
+import 'package:lockeye/core/pin_hasher.dart';
+import 'package:lockeye/services/update_service.dart';
+
+void main() {
+  group('PinHasher', () {
+    test('accepts the right PIN and rejects a wrong one', () {
+      final stored = PinHasher.create('1234');
+      expect(PinHasher.verify('1234', stored), isTrue);
+      expect(PinHasher.verify('4321', stored), isFalse);
+    });
+
+    test('does not store the PIN and uses a new salt each time', () {
+      final a = PinHasher.create('1234');
+      final b = PinHasher.create('1234');
+      expect(a.contains('1234'), isFalse);
+      expect(a, isNot(equals(b)));
+      expect(PinHasher.verify('1234', b), isTrue);
+    });
+
+    test('rejects broken stored values', () {
+      expect(PinHasher.verify('1234', ''), isFalse);
+      expect(PinHasher.verify('1234', 'nonsense'), isFalse);
+    });
+  });
+
+  group('UpdateService.isNewer', () {
+    test('compares versions', () {
+      expect(UpdateService.isNewer('1.2.0', '1.1.9'), isTrue);
+      expect(UpdateService.isNewer('1.0.0', '1.0.0'), isFalse);
+      expect(UpdateService.isNewer('1.0.1', '1.1.0'), isFalse);
+      expect(UpdateService.isNewer('2.0.0', '1.9.9+4'), isTrue);
+    });
+  });
+
+  group('formatWhen', () {
+    final now = DateTime(2026, 10, 29, 22, 0);
+
+    test('today and yesterday', () {
+      expect(formatWhen(DateTime(2026, 10, 29, 21, 47), now: now), 'Today, 21:47');
+      expect(formatWhen(DateTime(2026, 10, 28, 8, 12), now: now), 'Yesterday, 08:12');
+    });
+
+    test('this week and older', () {
+      expect(formatWhen(DateTime(2026, 10, 26, 23, 30), now: now), 'Mon, 23:30');
+      expect(formatWhen(DateTime(2026, 10, 20, 9, 5), now: now), '20 Oct 2026, 09:05');
+    });
+  });
+
+  group('formatSize', () {
+    test('formats bytes', () {
+      expect(formatSize(512), '512 B');
+      expect(formatSize(2048), '2 KB');
+      expect(formatSize(5 * 1024 * 1024), '5.0 MB');
+    });
+  });
+}
