@@ -4,6 +4,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../core/app_state.dart';
 import '../services/update_service.dart';
 import '../widgets/common.dart';
+import 'phone_lock_screen.dart';
 import 'pin_flow.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -97,13 +98,31 @@ class SettingsScreen extends StatelessWidget {
             const SectionLabel('Intruder photos'),
             SurfaceCard(
               padding: EdgeInsets.zero,
-              child: _SettingRow(
-                title: 'Photo on wrong PIN',
-                subtitle: 'Same rule for every space. Photos never leave this phone.',
-                trailing: Switch(
-                  value: state.photoOnWrong,
-                  onChanged: state.setPhotoOnWrong,
-                ),
+              child: Column(
+                children: [
+                  _SettingRow(
+                    title: 'Photo on wrong PIN',
+                    subtitle: 'Same rule for every space. Photos never leave this phone.',
+                    trailing: Switch(
+                      value: state.photoOnWrong,
+                      onChanged: state.setPhotoOnWrong,
+                    ),
+                  ),
+                  const Divider(),
+                  _SettingRow(
+                    title: 'Phone lock screen',
+                    subtitle: state.phoneLockEnabled
+                        ? 'On. Wrong phone PIN or pattern gets a photo.'
+                        : 'Also catch wrong tries on the phone\'s own lock screen.',
+                    trailing: OutlinedButton(
+                      onPressed: () => Navigator.push<void>(
+                        context,
+                        MaterialPageRoute(builder: (_) => PhoneLockScreen(state: state)),
+                      ),
+                      child: Text(state.phoneLockEnabled ? 'Manage' : 'Set up'),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SectionLabel('App'),

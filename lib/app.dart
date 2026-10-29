@@ -23,6 +23,7 @@ class _LockeyeAppState extends State<LockeyeApp> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.state.addListener(_closeScreensWhenLocked);
+    widget.state.syncPhoneLock();
   }
 
   @override
@@ -43,6 +44,10 @@ class _LockeyeAppState extends State<LockeyeApp> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState lifecycle) {
     if (lifecycle == AppLifecycleState.paused) widget.state.onAppPaused();
+    if (lifecycle == AppLifecycleState.resumed) {
+      widget.state.onAppResumed();
+      widget.state.syncPhoneLock();
+    }
   }
 
   @override

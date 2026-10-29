@@ -4,19 +4,30 @@ enum VaultSpace { mine, family }
 
 enum UnlockResult { mine, family, wrong, lockedOut }
 
+/// Where a wrong attempt happened.
+const String kSourceApp = 'app';
+const String kSourcePhone = 'phone';
+
 /// One wrong PIN attempt. [path] is null when no photo could be taken.
+/// [source] is [kSourceApp] (Lockeye's own keypad) or [kSourcePhone] (the
+/// phone's lock screen). A phone attempt number of 0 is a test photo.
 class IntruderEntry {
   const IntruderEntry({
     required this.id,
     required this.path,
     required this.timeMs,
     required this.attempt,
+    this.source = kSourceApp,
   });
 
   final String id;
   final String? path;
   final int timeMs;
   final int attempt;
+  final String source;
+
+  bool get isPhone => source == kSourcePhone;
+  bool get isTest => isPhone && attempt == 0;
 
   DateTime get time => DateTime.fromMillisecondsSinceEpoch(timeMs);
 
@@ -25,6 +36,7 @@ class IntruderEntry {
         'path': path,
         'time': timeMs,
         'attempt': attempt,
+        'source': source,
       };
 
   factory IntruderEntry.fromJson(Map<String, dynamic> json) => IntruderEntry(
@@ -32,6 +44,7 @@ class IntruderEntry {
         path: json['path'] as String?,
         timeMs: json['time'] as int? ?? 0,
         attempt: json['attempt'] as int? ?? 1,
+        source: json['source'] as String? ?? kSourceApp,
       );
 }
 

@@ -8,6 +8,7 @@ Type a wrong PIN and the front camera quietly takes a photo. Everything stays on
 
 - **Two PINs, two spaces.** Your PIN opens your vault (and can look into the Family space). The family PIN opens only the Family space, never your vault, the intruder photos or the settings.
 - **Photo on every wrong PIN.** Anyone who guesses wrong gets photographed, family included. You can turn this off in Settings.
+- **Phone lock screen (optional).** Also photographs wrong PIN, pattern or password attempts on the phone's own lock screen. Set it up in Settings → Phone lock screen. Fingerprint and face failures are not reported by Android.
 - **Intruder log.** Time, attempt number and photo for each wrong try, newest first.
 - **Vault.** Photos, files and notes, kept in the app's private folder.
 - **Lockout.** After 5 wrong tries in a row the keypad waits 30 seconds, then longer.

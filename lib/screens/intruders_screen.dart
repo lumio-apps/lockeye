@@ -143,6 +143,12 @@ class _EntryCard extends StatelessWidget {
   final VoidCallback onOpen;
   final VoidCallback onDelete;
 
+  static String _label(IntruderEntry entry) {
+    if (entry.isTest) return 'Test photo · Phone lock screen';
+    if (entry.isPhone) return 'Phone lock screen · Attempt ${entry.attempt}';
+    return 'Wrong PIN · Attempt ${entry.attempt}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -200,12 +206,12 @@ class _EntryCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'Wrong PIN · Attempt ${entry.attempt}',
+                  _label(entry),
                   style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
                 ),
                 if (path == null)
                   Text(
-                    'No photo (camera off or not allowed)',
+                    'No photo (camera off, busy or not allowed)',
                     style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
                   ),
               ],

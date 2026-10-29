@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lockeye/core/format.dart';
+import 'package:lockeye/core/models.dart';
 import 'package:lockeye/core/pin_hasher.dart';
+import 'package:lockeye/services/phone_lock_service.dart';
 import 'package:lockeye/services/update_service.dart';
 
 void main() {
@@ -53,6 +55,45 @@ void main() {
       expect(formatSize(512), '512 B');
       expect(formatSize(2048), '2 KB');
       expect(formatSize(5 * 1024 * 1024), '5.0 MB');
+    });
+  });
+
+  group('PendingShot.parseLines', () {
+    test('reads lines, skips broken ones, oldest first', () {
+      const text = '{"time": 2000, "attempt": 2, "path": "/a/b.jpg"}\n'
+          'not json\n'
+          '\n'
+          '{"time": 1000, "attempt": 1, "path": null}\n'
+          '{"attempt": 3}\n';
+      final shots = PendingShot.parseLines(text);
+      expect(shots.length, 2);
+      expect(shots[0].timeMs, 1000);
+      expect(shots[0].path, isNull);
+      expect(shots[1].attempt, 2);
+      expect(shots[1].path, '/a/b.jpg');
+    });
+
+    test('empty text gives no shots', () {
+      expect(PendingShot.parseLines(''), isEmpty);
+    });
+  });
+
+  group('IntruderEntry', () {
+    test('keeps its source and defaults old entries to the app', () {
+      const phone = IntruderEntry(
+        id: 'p1',
+        path: null,
+        timeMs: 5,
+        attempt: 0,
+        source: kSourcePhone,
+      );
+      final back = IntruderEntry.fromJson(phone.toJson());
+      expect(back.isPhone, isTrue);
+      expect(back.isTest, isTrue);
+
+      final old = IntruderEntry.fromJson({'id': 'x', 'path': null, 'time': 1, 'attempt': 2});
+      expect(old.source, kSourceApp);
+      expect(old.isPhone, isFalse);
     });
   });
 }

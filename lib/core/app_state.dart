@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/phone_lock_service.dart';
 import 'models.dart';
 import 'pin_hasher.dart';
 
@@ -26,6 +27,7 @@ class AppState extends ChangeNotifier {
   static const _kFamily = 'pin_family';
   static const _kFamilyOn = 'family_on';
   static const _kPhoto = 'photo_on_wrong';
+  static const _kPhoneLock = 'phone_lock_on';
   static const _kTheme = 'theme_mode';
   static const _kFails = 'fail_count';
   static const _kLockUntil = 'lock_until';
@@ -141,7 +143,22 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  DateTime? _holdUntil;
+
+  /// Call right before sending the person to an Android settings page, so the
+  /// vault does not lock itself while they are there. Expires after 2 minutes
+  /// and ends as soon as they come back.
+  void holdLockUntilResume() {
+    _holdUntil = DateTime.now().add(const Duration(minutes: 2));
+  }
+
+  void onAppResumed() {
+    _holdUntil = null;
+  }
+
   void onAppPaused() {
+    final hold = _holdUntil;
+    if (hold != null && DateTime.now().isBefore(hold)) return;
     if (_suspendCount == 0) lock();
   }
 
@@ -152,6 +169,51 @@ class AppState extends ChangeNotifier {
   Future<void> setPhotoOnWrong(bool value) async {
     await _prefs.setBool(_kPhoto, value);
     notifyListeners();
+  }
+
+  /// Photo on the phone's own lock screen. The Android side keeps its own copy
+  /// of this switch, because it must work while the app is closed.
+  bool get phoneLockEnabled => _prefs.getBool(_kPhoneLock) ?? false;
+
+  Future<void> setPhoneLockEnabled(bool value) async {
+    await _prefs.setBool(_kPhoneLock, value);
+    await PhoneLockService.configure(enabled: value);
+    notifyListeners();
+  }
+
+  /// Called when the app opens or comes back: refreshes the Android side and
+  /// adds the lock screen attempts that happened meanwhile to the log.
+  Future<int> syncPhoneLock() async {
+    await PhoneLockService.configure(enabled: phoneLockEnabled);
+    return importPhoneShots();
+  }
+
+  bool _importing = false;
+
+  Future<int> importPhoneShots() async {
+    if (_importing) return 0;
+    _importing = true;
+    try {
+      final shots = await PhoneLockService.takePending();
+      if (shots.isEmpty) return 0;
+      for (final shot in shots) {
+        _insertEntry(
+          IntruderEntry(
+            id: 'phone_${shot.timeMs}_${shot.attempt}',
+            path: shot.path,
+            timeMs: shot.timeMs,
+            attempt: shot.attempt,
+            source: kSourcePhone,
+          ),
+        );
+      }
+      await _trimLog();
+      await _writeLog();
+      notifyListeners();
+      return shots.length;
+    } finally {
+      _importing = false;
+    }
   }
 
   ThemeMode get themeMode {
@@ -204,8 +266,7 @@ class AppState extends ChangeNotifier {
     required int attempt,
     required DateTime time,
   }) async {
-    _intruders.insert(
-      0,
+    _insertEntry(
       IntruderEntry(
         id: '${time.microsecondsSinceEpoch}',
         path: path,
@@ -213,11 +274,22 @@ class AppState extends ChangeNotifier {
         attempt: attempt,
       ),
     );
+    await _trimLog();
+    await _writeLog();
+    notifyListeners();
+  }
+
+  /// Keeps the log newest first, even when old lock screen attempts arrive late.
+  void _insertEntry(IntruderEntry entry) {
+    if (_intruders.any((e) => e.id == entry.id)) return;
+    _intruders.add(entry);
+    _intruders.sort((a, b) => b.timeMs.compareTo(a.timeMs));
+  }
+
+  Future<void> _trimLog() async {
     while (_intruders.length > 200) {
       await _deleteFile(_intruders.removeLast().path);
     }
-    await _writeLog();
-    notifyListeners();
   }
 
   Future<void> removeIntruder(String id) async {
