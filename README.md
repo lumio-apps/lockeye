@@ -11,6 +11,10 @@ Offline. Open source. No accounts, no ads, no tracking.
 [![License: MIT](https://img.shields.io/badge/license-MIT-0B7F73)](LICENSE)
 ![Platform: Android](https://img.shields.io/badge/platform-Android-0B7F73)
 
+<br>
+
+<img src="docs/screenshots/hero.png" alt="Lockeye screens: lock, vault, intruder log, settings and phone lock screen setup" width="100%">
+
 </div>
 
 ---
@@ -82,6 +86,21 @@ Follows your phone, or choose Light or Dark in Settings.
 
 **Settings → Updates → Check** looks for a newer version on GitHub. If there is one, Lockeye downloads the APK and hands it to Android to install. Your PINs, vault and settings stay as they are.
 
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="docs/screenshots/lock.png" alt="Lock screen"><br><sub><b>Lock</b><br>Wrong PIN? A photo is taken</sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/vault.png" alt="Vault"><br><sub><b>Vault</b><br>Photos, files and notes</sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/intruders.png" alt="Intruder log"><br><sub><b>Intruder log</b><br>Every wrong attempt, newest first</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/settings.png" alt="Settings"><br><sub><b>Settings</b><br>PINs, family space, theme, updates</sub></td>
+    <td align="center"><img src="docs/screenshots/phone-lock-setup.png" alt="Phone lock screen setup"><br><sub><b>Phone lock screen</b><br>Four guided setup steps</sub></td>
+    <td align="center"><img src="docs/screenshots/phone-lock-on.png" alt="Phone lock screen switch"><br><sub><b>Turn on</b><br>Switch it on and take a test photo</sub></td>
+  </tr>
+</table>
+
 ## Install
 
 1. Open the [latest release](../../releases/latest).
@@ -116,6 +135,7 @@ Lockeye collects nothing. No analytics, no ads, no crash reports, no third-party
 - Phone lock screen: a `DeviceAdminReceiver` (watch-login policy) starts a short camera foreground service. The photo and a log line are written to app storage, and Lockeye imports them the next time it opens
 
 ```
+docs/screenshots/   images used in this README
 lib/
   core/       app state, PIN hashing, models, theme
   screens/    lock, setup, vault, photos, files, notes, intruders, settings, phone lock
