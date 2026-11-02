@@ -142,7 +142,9 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
               child: IntrinsicHeight(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(28, 40, 28, 28),
-                  child: Column(
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: Column(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Column(
@@ -198,7 +200,7 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
                       else
                         const SizedBox(height: 40),
                     ],
-                  ),
+                  )),
                 ),
               ),
             ),

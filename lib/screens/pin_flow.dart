@@ -111,7 +111,9 @@ class _PinFlowState extends State<PinFlow> {
           child: IntrinsicHeight(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(28, 24, 28, 28),
-              child: Column(
+              child: SizedBox(
+                width: double.infinity,
+                child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Column(
@@ -146,7 +148,7 @@ class _PinFlowState extends State<PinFlow> {
                   ),
                   const SizedBox(height: 24),
                 ],
-              ),
+              )),
             ),
           ),
         ),
