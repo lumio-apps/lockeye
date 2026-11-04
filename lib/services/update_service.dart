@@ -21,7 +21,7 @@ class _UpdateError implements Exception {
 /// Updating keeps all vault data: the app is replaced, its data stays.
 class UpdateService {
   static const _latestReleaseUrl =
-      'https://api.github.com/repos/lumio-apps/lockeye/releases/latest';
+      'https://api.github.com/repos/aditymishr098-collab/lockeye/releases/latest';
 
   /// Shows the full "Check for updates" flow with dialogs.
   static Future<void> checkForUpdates(BuildContext context) async {

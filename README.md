@@ -7,7 +7,7 @@
 Type a wrong PIN and the front camera quietly takes a photo.
 Offline. Open source. No accounts, no ads, no tracking.
 
-[![Latest release](https://img.shields.io/github/v/release/lumio-apps/lockeye?label=release&color=0B7F73)](../../releases/latest)
+[![Latest release](https://img.shields.io/github/v/release/aditymishr098-collab/lockeye?label=release&color=0B7F73)](../../releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-0B7F73)](LICENSE)
 ![Platform: Android](https://img.shields.io/badge/platform-Android-0B7F73)
 
