@@ -6,6 +6,7 @@ import '../core/format.dart';
 import '../core/models.dart';
 import '../services/vault_service.dart';
 import '../widgets/common.dart';
+import '../widgets/import_flow.dart';
 
 class FilesScreen extends StatefulWidget {
   const FilesScreen({super.key, required this.state, required this.space});
@@ -32,13 +33,8 @@ class _FilesScreenState extends State<FilesScreen> {
   }
 
   Future<void> _add() async {
-    final added = await VaultService.pickAndImport(widget.state, widget.space, VaultKind.files);
+    await importIntoVault(context, widget.state, widget.space, VaultKind.files);
     if (!mounted) return;
-    if (added > 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Added $added file${added == 1 ? '' : 's'}')),
-      );
-    }
     await _load();
   }
 
@@ -55,7 +51,12 @@ class _FilesScreenState extends State<FilesScreen> {
 
   Future<void> _open(VaultItem item) async {
     final messenger = ScaffoldMessenger.of(context);
-    final result = await OpenFilex.open(item.path);
+    final plain = await VaultService.decryptForOpening(widget.space, item);
+    if (plain == null) {
+      messenger.showSnackBar(const SnackBar(content: Text('This file could not be opened.')));
+      return;
+    }
+    final result = await widget.state.keepUnlocked(() => OpenFilex.open(plain));
     if (result.type != ResultType.done) {
       messenger.showSnackBar(
         SnackBar(content: Text('No app could open this file: ${result.message}')),
@@ -86,7 +87,7 @@ class _FilesScreenState extends State<FilesScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                'Files you add are copied into the vault. Delete the originals yourself.',
+                'Files you add are encrypted into the vault. Delete the originals yourself.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: scheme.onSurfaceVariant),
               ),

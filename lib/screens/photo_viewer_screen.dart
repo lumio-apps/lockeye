@@ -1,4 +1,6 @@
 import 'dart:io';
+// ignore: unnecessary_import
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
@@ -12,10 +14,15 @@ class PhotoViewerScreen extends StatefulWidget {
     required this.paths,
     this.initial = 0,
     this.onDelete,
+    this.loader,
   });
 
   final List<String> paths;
   final int initial;
+
+  /// Reads one photo. Without it the path is read as a plain image file
+  /// (intruder photos); vault photos pass a loader that decrypts them.
+  final Future<Uint8List?> Function(String path)? loader;
   final Future<void> Function(String path)? onDelete;
 
   @override
@@ -31,6 +38,18 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
     _controller.dispose();
     super.dispose();
   }
+
+  final Map<String, Future<Uint8List?>> _reads = {};
+
+  Future<Uint8List?> _read(String path) => _reads.putIfAbsent(path, () async {
+        final loader = widget.loader;
+        if (loader != null) return loader(path);
+        try {
+          return await File(path).readAsBytes();
+        } catch (_) {
+          return null;
+        }
+      });
 
   Future<void> _delete() async {
     final onDelete = widget.onDelete;
@@ -67,10 +86,23 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
           minScale: 1,
           maxScale: 5,
           child: Center(
-            child: Image.file(
-              File(widget.paths[i]),
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stack) => const Icon(Icons.broken_image_outlined, size: 64),
+            child: FutureBuilder<Uint8List?>(
+              future: _read(widget.paths[i]),
+              builder: (context, snapshot) {
+                final bytes = snapshot.data;
+                if (bytes != null) {
+                  return Image.memory(
+                    bytes,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stack) =>
+                        const Icon(Icons.broken_image_outlined, size: 64),
+                  );
+                }
+                if (snapshot.connectionState == ConnectionState.done) {
+                  return const Icon(Icons.broken_image_outlined, size: 64);
+                }
+                return const CircularProgressIndicator();
+              },
             ),
           ),
         ),

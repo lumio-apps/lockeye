@@ -1,10 +1,12 @@
-import 'dart:io';
+// ignore: unnecessary_import
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
 import '../core/app_state.dart';
 import '../core/models.dart';
 import '../services/vault_service.dart';
+import '../widgets/import_flow.dart';
 import 'photo_viewer_screen.dart';
 
 class PhotosScreen extends StatefulWidget {
@@ -32,13 +34,8 @@ class _PhotosScreenState extends State<PhotosScreen> {
   }
 
   Future<void> _add() async {
-    final added = await VaultService.pickAndImport(widget.state, widget.space, VaultKind.photos);
+    await importIntoVault(context, widget.state, widget.space, VaultKind.photos);
     if (!mounted) return;
-    if (added > 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Added $added photo${added == 1 ? '' : 's'}')),
-      );
-    }
     await _load();
   }
 
@@ -49,6 +46,7 @@ class _PhotosScreenState extends State<PhotosScreen> {
         builder: (_) => PhotoViewerScreen(
           paths: items.map((e) => e.path).toList(),
           initial: index,
+          loader: (path) => VaultService.photoBytes(widget.space, path),
           onDelete: VaultService.delete,
         ),
       ),
@@ -79,7 +77,7 @@ class _PhotosScreenState extends State<PhotosScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                'Photos you add are copied into the vault. Delete the originals from your gallery yourself.',
+                'Photos you add are encrypted into the vault. Lockeye can also delete the originals from your gallery.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: scheme.onSurfaceVariant),
               ),
@@ -100,14 +98,10 @@ class _PhotosScreenState extends State<PhotosScreen> {
           onTap: () => _open(items, i),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: Image.file(
-              File(items[i].path),
-              fit: BoxFit.cover,
-              cacheWidth: 360,
-              errorBuilder: (context, error, stack) => Container(
-                color: scheme.surfaceContainerHighest,
-                child: const Icon(Icons.broken_image_outlined),
-              ),
+            child: _Thumb(
+              key: ValueKey(items[i].path),
+              space: widget.space,
+              path: items[i].path,
             ),
           ),
         ),
@@ -122,6 +116,47 @@ class _PhotosScreenState extends State<PhotosScreen> {
         icon: const Icon(Icons.add_photo_alternate_outlined),
         label: const Text('Add photos'),
       ),
+    );
+  }
+}
+
+/// One decrypted photo in the grid.
+class _Thumb extends StatefulWidget {
+  const _Thumb({super.key, required this.space, required this.path});
+
+  final VaultSpace space;
+  final String path;
+
+  @override
+  State<_Thumb> createState() => _ThumbState();
+}
+
+class _ThumbState extends State<_Thumb> {
+  late final Future<Uint8List?> _future = VaultService.photoBytes(widget.space, widget.path);
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final box = Container(
+      color: scheme.surfaceContainerHighest,
+      child: Icon(Icons.broken_image_outlined, color: scheme.outline),
+    );
+    return FutureBuilder<Uint8List?>(
+      future: _future,
+      builder: (context, snapshot) {
+        final bytes = snapshot.data;
+        if (bytes != null) {
+          return Image.memory(
+            bytes,
+            fit: BoxFit.cover,
+            cacheWidth: 360,
+            gaplessPlayback: true,
+            errorBuilder: (context, error, stack) => box,
+          );
+        }
+        if (snapshot.connectionState == ConnectionState.done) return box;
+        return Container(color: scheme.surfaceContainerHighest);
+      },
     );
   }
 }

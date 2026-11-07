@@ -24,6 +24,7 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
   Timer? _ticker;
   Duration _remaining = Duration.zero;
   String? _error;
+  bool _busy = false;
 
   AppState get _state => widget.state;
 
@@ -73,8 +74,13 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
     });
   }
 
-  void _onCompleted(String pin) {
-    final result = _state.unlock(pin);
+  Future<void> _onCompleted(String pin) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    final result = await _state.unlock(pin);
+    // When the vault opens, this screen is gone before the check returns.
+    if (!mounted) return;
+    setState(() => _busy = false);
     switch (result) {
       case UnlockResult.mine:
       case UnlockResult.family:
@@ -83,6 +89,11 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
         _pad.currentState?.clear();
         setState(() => _remaining = _state.lockRemaining);
         _startTicker();
+      case UnlockResult.needsOwner:
+        _pad.currentState?.clear();
+        setState(() {
+          _error = 'Lockeye was updated. Ask the owner to open it once with their PIN.';
+        });
       case UnlockResult.wrong:
         _onWrong();
     }
@@ -125,6 +136,9 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
     if (locked) {
       message = 'Too many wrong tries. Wait ${_remaining.inSeconds + 1} s.';
       messageColor = scheme.error;
+    } else if (_busy) {
+      message = _state.migrating ? 'Securing your vault. This happens once.' : 'Checking...';
+      messageColor = scheme.onSurfaceVariant;
     } else if (_error != null) {
       message = _error!;
       messageColor = scheme.error;
@@ -170,14 +184,14 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
                       const SizedBox(height: 24),
                       PinPad(
                         key: _pad,
-                        enabled: !locked,
+                        enabled: !locked && !_busy,
                         onFirstDigit: () {
                           if (_error != null) setState(() => _error = null);
                         },
                         onCompleted: _onCompleted,
                       ),
                       const SizedBox(height: 24),
-                      if (_state.photoOnWrong)
+                      if (_state.photoOnWrong && _state.showLockHint)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                           decoration: BoxDecoration(

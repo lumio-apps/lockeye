@@ -18,8 +18,9 @@ class SettingsScreen extends StatelessWidget {
       MaterialPageRoute(
         builder: (_) => PinFlowPage(
           title: 'Choose a new PIN',
-          verify: state.matchesMine,
-          forbid: (pin) => state.matchesFamily(pin) ? 'This PIN is used for the Family space.' : null,
+          verify: state.verifyMine,
+          forbid: (pin) async =>
+              await state.verifyFamily(pin) ? 'This PIN is used for the Family space.' : null,
           onSave: state.setMinePin,
         ),
       ),
@@ -35,7 +36,7 @@ class SettingsScreen extends StatelessWidget {
       MaterialPageRoute(
         builder: (_) => PinFlowPage(
           title: 'Choose the family PIN',
-          forbid: (pin) => state.matchesMine(pin) ? 'Pick a PIN different from yours.' : null,
+          forbid: (pin) async => await state.verifyMine(pin) ? 'Pick a PIN different from yours.' : null,
           onSave: state.setFamilyPin,
         ),
       ),
@@ -66,7 +67,9 @@ class SettingsScreen extends StatelessWidget {
                 children: [
                   _SettingRow(
                     title: 'My PIN',
-                    subtitle: 'Opens everything, including intruder photos',
+                    subtitle: state.pinIsShort
+                        ? 'Your PIN is short. Change it to $kMinNewPin or more digits.'
+                        : 'Opens everything, including intruder photos',
                     trailing: OutlinedButton(
                       onPressed: () => _changeMinePin(context),
                       child: const Text('Change'),
@@ -110,6 +113,16 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   const Divider(),
                   _SettingRow(
+                    title: 'Show photo warning',
+                    subtitle: 'Shows "Wrong PIN? Lockeye takes a photo." on the lock screen. '
+                        'Off is better: a thief should not know.',
+                    trailing: Switch(
+                      value: state.showLockHint,
+                      onChanged: state.photoOnWrong ? state.setShowLockHint : null,
+                    ),
+                  ),
+                  const Divider(),
+                  _SettingRow(
                     title: 'Phone lock screen',
                     subtitle: state.phoneLockEnabled
                         ? 'On. Wrong phone PIN or pattern gets a photo.'
@@ -123,6 +136,18 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+            ),
+            const SectionLabel('Privacy'),
+            SurfaceCard(
+              padding: EdgeInsets.zero,
+              child: _SettingRow(
+                title: 'Block screenshots',
+                subtitle: 'No screenshots or screen recording, and a blank preview in Recent apps.',
+                trailing: Switch(
+                  value: state.blockScreenshots,
+                  onChanged: state.setBlockScreenshots,
+                ),
               ),
             ),
             const SectionLabel('App'),

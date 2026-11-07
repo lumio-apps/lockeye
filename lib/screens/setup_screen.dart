@@ -71,7 +71,7 @@ class _SetupScreenState extends State<SetupScreen> {
         return PinFlow(
           key: const ValueKey('family'),
           title: 'Create the family PIN',
-          forbid: (pin) => pin == _minePin ? 'Pick a PIN different from yours.' : null,
+          forbid: (pin) async => pin == _minePin ? 'Pick a PIN different from yours.' : null,
           onComplete: (pin) => _finish(familyPin: pin),
         );
     }
@@ -115,7 +115,7 @@ class _SetupScreenState extends State<SetupScreen> {
           const SizedBox(height: 32),
           point(Icons.lock_outline, 'Your PIN opens your vault. A separate family PIN opens only the family space.'),
           point(Icons.photo_camera_outlined, 'On a wrong PIN the front camera takes a photo. Lockeye will ask for camera access next.'),
-          point(Icons.phone_android, 'Everything stays on this phone. No accounts, no ads, no tracking.'),
+          point(Icons.enhanced_encryption_outlined, 'Photos, files and notes are encrypted on this phone. No accounts, no ads, no tracking.'),
           const Spacer(),
           SizedBox(
             width: double.infinity,

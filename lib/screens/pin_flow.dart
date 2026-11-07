@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/app_state.dart';
 import '../widgets/pin_pad.dart';
 
 enum _FlowStage { verify, create, confirm }
@@ -20,10 +21,10 @@ class PinFlow extends StatefulWidget {
   final void Function(String pin) onComplete;
 
   /// When set, the current PIN is asked first and checked with this function.
-  final bool Function(String pin)? verify;
+  final Future<bool> Function(String pin)? verify;
 
   /// Returns an error message when the new PIN is not allowed, else null.
-  final String? Function(String pin)? forbid;
+  final Future<String?> Function(String pin)? forbid;
 
   @override
   State<PinFlow> createState() => _PinFlowState();
@@ -34,6 +35,7 @@ class _PinFlowState extends State<PinFlow> {
   late _FlowStage _stage = widget.verify != null ? _FlowStage.verify : _FlowStage.create;
   String _first = '';
   String? _error;
+  bool _busy = false;
 
   String get _heading {
     switch (_stage) {
@@ -51,36 +53,44 @@ class _PinFlowState extends State<PinFlow> {
       case _FlowStage.verify:
         return 'To make sure it is you';
       case _FlowStage.create:
-        return 'Choose a 4-digit PIN';
+        return 'Choose a PIN of $kMinNewPin to $kMaxPin digits, then tap the check';
       case _FlowStage.confirm:
         return 'Enter the same PIN again';
     }
   }
 
-  void _onCompleted(String pin) {
-    switch (_stage) {
-      case _FlowStage.verify:
-        if (widget.verify!(pin)) {
-          _next(_FlowStage.create);
-        } else {
-          _fail('Wrong PIN. Try again.');
-        }
-      case _FlowStage.create:
-        final problem = widget.forbid?.call(pin);
-        if (problem != null) {
-          _fail(problem);
-        } else {
-          _first = pin;
-          _next(_FlowStage.confirm);
-        }
-      case _FlowStage.confirm:
-        if (pin == _first) {
-          widget.onComplete(pin);
-        } else {
-          _first = '';
-          _stage = _FlowStage.create;
-          _fail('The PINs did not match. Start again.');
-        }
+  Future<void> _onCompleted(String pin) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      switch (_stage) {
+        case _FlowStage.verify:
+          if (await widget.verify!(pin)) {
+            _next(_FlowStage.create);
+          } else {
+            _fail('Wrong PIN. Try again.');
+          }
+        case _FlowStage.create:
+          final problem = isWeakPin(pin)
+              ? 'That PIN is too easy to guess. Try another.'
+              : await widget.forbid?.call(pin);
+          if (problem != null) {
+            _fail(problem);
+          } else {
+            _first = pin;
+            _next(_FlowStage.confirm);
+          }
+        case _FlowStage.confirm:
+          if (pin == _first) {
+            widget.onComplete(pin);
+          } else {
+            _first = '';
+            _stage = _FlowStage.create;
+            _fail('The PINs did not match. Start again.');
+          }
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
   }
 
@@ -141,6 +151,8 @@ class _PinFlowState extends State<PinFlow> {
                   const SizedBox(height: 24),
                   PinPad(
                     key: _pad,
+                    enabled: !_busy,
+                    minLength: _stage == _FlowStage.verify ? kMinAnyPin : kMinNewPin,
                     onCompleted: _onCompleted,
                     onFirstDigit: () {
                       if (_error != null) setState(() => _error = null);
@@ -170,8 +182,8 @@ class PinFlowPage extends StatelessWidget {
 
   final String title;
   final Future<void> Function(String pin) onSave;
-  final bool Function(String pin)? verify;
-  final String? Function(String pin)? forbid;
+  final Future<bool> Function(String pin)? verify;
+  final Future<String?> Function(String pin)? forbid;
 
   @override
   Widget build(BuildContext context) {

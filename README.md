@@ -40,7 +40,8 @@ The Family PIN is optional. You can switch it off at any time.
 
 - A wrong PIN in Lockeye takes a front camera photo, whoever typed it. Family included.
 - The camera opens only for the photo and closes right after, so Android's green camera dot is not sitting on the lock screen.
-- After 5 wrong tries in a row the keypad waits 30 seconds, then longer (up to 5 minutes).
+- After 5 wrong tries in a row the keypad waits 30 seconds, then longer (up to 5 minutes). The wait is timed with the phone's uptime clock, so changing the date or time does not skip it. Restarting the phone starts the wait again.
+- The note "Wrong PIN? Lockeye takes a photo." on the lock screen is **off** by default, so a thief is not warned. You can show it in **Settings → Show photo warning**.
 - You can turn the photo off in **Settings → Photo on wrong PIN**.
 
 ### Phone lock screen (optional)
@@ -61,6 +62,7 @@ Then switch it on and press **Take a test photo**.
 - Only a wrong **PIN, pattern or password** counts. Android does not report wrong fingerprints or faces.
 - Some phones (mostly Xiaomi, Oppo, Vivo, Realme) block camera use on the lock screen even with every step done. Then the attempt is still logged, but without a photo.
 - To uninstall Lockeye, first open **Settings → Phone lock screen → Turn off and remove device admin**. Android does not allow removing an app that is a device admin.
+- If someone switches the device admin off in Android settings instead, Lockeye takes a photo and adds "Lock screen guard switched off" to the intruder log.
 
 ### Intruder log
 
@@ -72,7 +74,19 @@ Every wrong attempt is listed newest first, with the time, the attempt number, t
 - **Files** of any type
 - **Notes** with a title and text
 
-Everything is kept in the app's private folder. Other apps and the gallery cannot see it. Your originals stay where they were, so delete them from the gallery yourself if you want them gone.
+Everything is **encrypted** (AES-256-GCM), including the file names, and kept in the app's private folder. Other apps and the gallery cannot see it. Items you pick are encrypted straight from the picker, with no plain copy made on the way.
+
+After adding photos, Lockeye offers to **delete the originals from your gallery** (Android asks you to confirm). Android may refuse this on some phones; then the originals have to be deleted by hand.
+
+### Your PIN
+
+- New PINs have **6 to 12 digits**. Obvious ones such as 000000 or 123456 are refused.
+- A 4-digit PIN from an older version keeps working. Settings reminds you to change it.
+- Tap the check key to confirm the PIN.
+
+### Privacy
+
+Screenshots, screen recording and the preview in Recent apps are **blocked** by default. Turn this off in **Settings → Privacy**.
 
 ### Auto lock
 
@@ -125,12 +139,13 @@ The phone lock screen permissions are only requested if you set that feature up.
 
 ## Privacy
 
-Lockeye collects nothing. No analytics, no ads, no crash reports, no third-party services. PINs are stored only as salted hashes, and photos never leave the phone. See [PRIVACY.md](PRIVACY.md) for the full policy.
+Lockeye collects nothing. No analytics, no ads, no crash reports, no third-party services. PINs are never stored, and photos never leave the phone. See [PRIVACY.md](PRIVACY.md) for the full policy.
 
 ## How it is built
 
 - **Flutter** (Material 3), Android only
-- PINs: salted HMAC-SHA256, 5000 rounds, stored as `salt$hash`
+- Vault: every photo, file, note and file name is AES-256-GCM encrypted in 1 MiB chunks. Each space (Mine, Family) has its own random 256-bit key
+- Keys: wrapped by a key made from the PIN (PBKDF2-HMAC-SHA256, 150 000 rounds) and again by a non-exportable key in the Android Keystore. The owner's key can also open the Family space. Changing a PIN only re-wraps a key
 - Camera: the `camera` plugin for the in-app keypad; native **Camera2** in Kotlin for the phone lock screen
 - Phone lock screen: a `DeviceAdminReceiver` (watch-login policy) starts a short camera foreground service. The photo and a log line are written to app storage, and Lockeye imports them the next time it opens
 
@@ -139,10 +154,10 @@ docs/screenshots/   images used in this README
 lib/
   core/       app state, PIN hashing, models, theme
   screens/    lock, setup, vault, photos, files, notes, intruders, settings, phone lock
-  services/   intruder camera, vault storage, phone lock bridge, updater
+  services/   intruder camera, vault storage and crypto bridge, phone lock bridge, updater
   widgets/    logo, PIN pad, shared cards
 android/app/src/main/kotlin/com/lumioapps/lockeye/
-              admin receiver, camera foreground service, Camera2 capture, method channel
+              vault encryption, picker import, admin receiver, camera foreground service, Camera2 capture, method channels
 ```
 
 ## Build from source
@@ -166,10 +181,13 @@ Pushing a tag like `v1.1.1` starts the GitHub Actions release workflow. It analy
 
 ## Limits
 
-Lockeye is a deterrent and a witness, not a safe.
+Lockeye is a deterrent, a witness and an encrypted vault. It is not magic, so know its limits.
 
-- The vault is **not encrypted** yet. It is protected by the PIN and by Android's private app storage.
-- Someone with full access to an unlocked or rooted phone can reach app storage.
+- Someone who knows your phone's lock screen PIN can still open **Settings → Apps → Lockeye** and **clear its data** or **switch off its device admin and uninstall it**. No app can prevent that. Because the vault is encrypted, this destroys the vault but does not expose it. With the phone lock screen option on, switching the admin off is logged with a photo.
+- If you forget your PIN, the vault **cannot be recovered**. There is no reset and no backup.
+- Intruder photos and the intruder log are **not encrypted**.
+- A 6-digit PIN has a million combinations. The keys are tied to this phone's Keystore and each guess is slow, which makes guessing from a copied vault impractical, but a long PIN is stronger.
+- A rooted phone or a phone with malware can read the app while it is unlocked.
 - Phone lock screen photos depend on how your phone's maker handles background camera use.
 
 ## License

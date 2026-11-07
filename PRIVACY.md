@@ -2,7 +2,7 @@
 
 **App:** Lockeye (package `com.lumioapps.lockeye`)
 **Developer:** Lumio Apps
-**Last updated:** October 30, 2026
+**Last updated:** November 6, 2026
 
 Lockeye is built to respect your privacy.
 
@@ -17,12 +17,24 @@ Lockeye is built to respect your privacy.
 
 ## Data stored on your device
 
-- Your PINs, saved only as salted hashes (the PIN itself is never stored)
+- Your PINs are never stored. They only unlock the encryption keys of the vault (see below)
 - Your settings
 - The intruder log and the photos taken after wrong PIN attempts
-- The photos, files and notes you add to the vault
+- The photos, files and notes you add to the vault, encrypted
 
 All of it stays in the app's private storage on your phone. Other apps and the gallery cannot see it. Uninstalling the app removes all of it.
+
+## Encryption
+
+Photos, files, notes and their file names in the vault are encrypted on the phone with AES-256-GCM. Each space has its own random key. The keys are protected by your PINs (PBKDF2, 150 000 rounds) and by a key held in the Android Keystore of this phone, so a copy of the app's files cannot be opened on another device. While the app is open, decrypted data is kept only in memory. Opening a file in another app makes a temporary plain copy, which is deleted the next time Lockeye starts or unlocks.
+
+The intruder photos and the intruder log are not encrypted.
+
+If you forget your PIN, the vault cannot be recovered. There is no reset.
+
+## Screenshots
+
+Screenshots, screen recording and the preview in Recent apps are blocked by default. Turn this off in Settings → Privacy.
 
 ## Camera
 

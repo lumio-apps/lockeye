@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lockeye/core/app_state.dart';
 import 'package:lockeye/core/format.dart';
 import 'package:lockeye/core/models.dart';
 import 'package:lockeye/core/pin_hasher.dart';
@@ -106,6 +107,46 @@ void main() {
       final old = IntruderEntry.fromJson({'id': 'x', 'path': null, 'time': 1, 'attempt': 2});
       expect(old.source, kSourceApp);
       expect(old.isPhone, isFalse);
+    });
+  });
+
+  group('IntruderEntry tamper', () {
+    test('attempt -1 on the phone source means the guard was switched off', () {
+      const entry = IntruderEntry(id: 't', path: null, timeMs: 1, attempt: -1, source: kSourcePhone);
+      expect(entry.isTamper, isTrue);
+      expect(entry.isTest, isFalse);
+    });
+  });
+
+  group('remainingLockMs', () {
+    test('counts down with the uptime clock', () {
+      expect(remainingLockMs(durationMs: 30000, setAt: 1000, now: 1000), 30000);
+      expect(remainingLockMs(durationMs: 30000, setAt: 1000, now: 11000), 20000);
+      expect(remainingLockMs(durationMs: 30000, setAt: 1000, now: 31000), 0);
+      expect(remainingLockMs(durationMs: 30000, setAt: 1000, now: 99000), 0);
+    });
+
+    test('a restart (clock went back) starts the lockout again', () {
+      expect(remainingLockMs(durationMs: 60000, setAt: 500000, now: 4000), 60000);
+    });
+
+    test('no lockout stored means no wait', () {
+      expect(remainingLockMs(durationMs: 0, setAt: 0, now: 5), 0);
+    });
+  });
+
+  group('isWeakPin', () {
+    test('rejects repeats and simple runs', () {
+      expect(isWeakPin('000000'), isTrue);
+      expect(isWeakPin('111111'), isTrue);
+      expect(isWeakPin('123456'), isTrue);
+      expect(isWeakPin('654321'), isTrue);
+      expect(isWeakPin('345678'), isTrue);
+    });
+
+    test('accepts ordinary PINs', () {
+      expect(isWeakPin('482915'), isFalse);
+      expect(isWeakPin('120120'), isFalse);
     });
   });
 }

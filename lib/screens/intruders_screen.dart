@@ -145,6 +145,7 @@ class _EntryCard extends StatelessWidget {
 
   static String _label(IntruderEntry entry) {
     if (entry.isTest) return 'Test photo · Phone lock screen';
+    if (entry.isTamper) return 'Lock screen guard switched off';
     if (entry.isPhone) return 'Phone lock screen · Attempt ${entry.attempt}';
     return 'Wrong PIN · Attempt ${entry.attempt}';
   }

@@ -12,6 +12,8 @@ object NativePrefs {
     const val KEY_BASE_DIR = "base_dir"
     const val KEY_LAST_FAIL = "last_fail"
     const val KEY_ATTEMPT = "attempt"
+    const val KEY_SECURE = "secure_screen"
+    const val KEY_SELF_REMOVE = "self_remove"
 
     fun of(context: Context): SharedPreferences =
         context.applicationContext.getSharedPreferences("lockeye_native", Context.MODE_PRIVATE)

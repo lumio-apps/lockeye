@@ -3,21 +3,24 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../core/app_state.dart' show kPinLength;
+import '../core/app_state.dart' show kMaxPin, kMinAnyPin;
 
-/// Four dots and a numeric keypad. Calls [onCompleted] when all digits are in;
-/// the parent then calls [PinPadState.clear] (or [PinPadState.shake]).
+/// Dots and a numeric keypad. The check key calls [onCompleted] once at least
+/// [minLength] digits are in; the parent then calls [PinPadState.clear] (or
+/// [PinPadState.shake]).
 class PinPad extends StatefulWidget {
   const PinPad({
     super.key,
     required this.onCompleted,
     this.onFirstDigit,
     this.enabled = true,
+    this.minLength = kMinAnyPin,
   });
 
   final void Function(String pin) onCompleted;
   final VoidCallback? onFirstDigit;
   final bool enabled;
+  final int minLength;
 
   @override
   State<PinPad> createState() => PinPadState();
@@ -46,18 +49,25 @@ class PinPadState extends State<PinPad> with SingleTickerProviderStateMixin {
     await _shake.forward(from: 0);
   }
 
+  bool get _canSubmit => widget.enabled && _pin.length >= widget.minLength;
+
   void _tap(String digit) {
-    if (!widget.enabled || _pin.length >= kPinLength) return;
+    if (!widget.enabled || _pin.length >= kMaxPin) return;
     HapticFeedback.selectionClick();
     setState(() => _pin += digit);
     if (_pin.length == 1) widget.onFirstDigit?.call();
-    if (_pin.length == kPinLength) widget.onCompleted(_pin);
   }
 
   void _back() {
-    if (!widget.enabled || _pin.isEmpty || _pin.length >= kPinLength) return;
+    if (!widget.enabled || _pin.isEmpty) return;
     HapticFeedback.selectionClick();
     setState(() => _pin = _pin.substring(0, _pin.length - 1));
+  }
+
+  void _submit() {
+    if (!_canSubmit) return;
+    HapticFeedback.mediumImpact();
+    widget.onCompleted(_pin);
   }
 
   @override
@@ -87,13 +97,13 @@ class PinPadState extends State<PinPad> with SingleTickerProviderStateMixin {
             return Transform.translate(offset: Offset(dx, 0), child: child);
           },
           child: Semantics(
-            label: '${_pin.length} of $kPinLength digits entered',
+            label: '${_pin.length} digits entered',
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                for (var i = 0; i < kPinLength; i++)
+                for (var i = 0; i < math.max(_pin.length, widget.minLength); i++)
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 9),
+                    padding: const EdgeInsets.symmetric(horizontal: 5),
                     child: _Dot(filled: i < _pin.length),
                   ),
               ],
@@ -109,7 +119,16 @@ class PinPadState extends State<PinPad> with SingleTickerProviderStateMixin {
               row([digit('4'), digit('5'), digit('6')]),
               row([digit('7'), digit('8'), digit('9')]),
               row([
-                const SizedBox(width: 72, height: 72),
+                _Key(
+                  filled: _canSubmit,
+                  label: 'Confirm PIN',
+                  onTap: _submit,
+                  child: Icon(
+                    Icons.check_rounded,
+                    size: 30,
+                    color: _canSubmit ? scheme.primary : scheme.outline,
+                  ),
+                ),
                 digit('0'),
                 _Key(
                   filled: false,
@@ -135,8 +154,8 @@ class _Dot extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      width: 16,
-      height: 16,
+      width: 14,
+      height: 14,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: filled ? scheme.primary : Colors.transparent,

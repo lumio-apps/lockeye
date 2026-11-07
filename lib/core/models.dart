@@ -2,7 +2,9 @@
 /// look into [family]); the family PIN opens only [family].
 enum VaultSpace { mine, family }
 
-enum UnlockResult { mine, family, wrong, lockedOut }
+/// [needsOwner]: the family PIN was right, but the vault is still waiting for
+/// the owner to open Lockeye once after an update.
+enum UnlockResult { mine, family, wrong, lockedOut, needsOwner }
 
 /// Where a wrong attempt happened.
 const String kSourceApp = 'app';
@@ -10,7 +12,8 @@ const String kSourcePhone = 'phone';
 
 /// One wrong PIN attempt. [path] is null when no photo could be taken.
 /// [source] is [kSourceApp] (Lockeye's own keypad) or [kSourcePhone] (the
-/// phone's lock screen). A phone attempt number of 0 is a test photo.
+/// phone's lock screen). A phone attempt number of 0 is a test photo, and -1
+/// means the guard was switched off in Android settings.
 class IntruderEntry {
   const IntruderEntry({
     required this.id,
@@ -28,6 +31,9 @@ class IntruderEntry {
 
   bool get isPhone => source == kSourcePhone;
   bool get isTest => isPhone && attempt == 0;
+
+  /// The phone lock screen guard was switched off in Android settings.
+  bool get isTamper => isPhone && attempt < 0;
 
   DateTime get time => DateTime.fromMillisecondsSinceEpoch(timeMs);
 

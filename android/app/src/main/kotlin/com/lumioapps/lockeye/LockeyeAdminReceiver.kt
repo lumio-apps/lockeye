@@ -29,11 +29,32 @@ class LockeyeAdminReceiver : DeviceAdminReceiver() {
         }
     }
 
+    override fun onDisableRequested(context: Context, intent: Intent): CharSequence =
+        "Lockeye will record that the phone lock screen guard was switched off."
+
+    /**
+     * Someone switched the device admin off in Android settings (which is also the
+     * first step of uninstalling). Lockeye cannot stop that, but it can take a
+     * photo and write it to the log. Switching it off from inside Lockeye is not
+     * reported.
+     */
+    override fun onDisabled(context: Context, intent: Intent) {
+        val prefs = NativePrefs.of(context)
+        val byApp = prefs.getBoolean(NativePrefs.KEY_SELF_REMOVE, false)
+        prefs.edit().putBoolean(NativePrefs.KEY_SELF_REMOVE, false).apply()
+        if (byApp || !prefs.getBoolean(NativePrefs.KEY_ENABLED, false)) return
+
+        if (!PhoneLockService.start(context, TAMPER_ATTEMPT)) {
+            PendingLog.append(context, System.currentTimeMillis(), TAMPER_ATTEMPT, null)
+        }
+    }
+
     override fun onPasswordSucceeded(context: Context, intent: Intent) {
         NativePrefs.of(context).edit().putInt(NativePrefs.KEY_ATTEMPT, 0).apply()
     }
 
     private companion object {
         const val STREAK_MS = 10 * 60 * 1000L
+        const val TAMPER_ATTEMPT = -1
     }
 }

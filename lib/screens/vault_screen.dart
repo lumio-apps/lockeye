@@ -5,6 +5,7 @@ import '../core/format.dart';
 import '../core/models.dart';
 import '../core/theme.dart';
 import '../services/vault_service.dart';
+import '../widgets/import_flow.dart';
 import '../widgets/logo.dart';
 import 'files_screen.dart';
 import 'notes_screen.dart';
@@ -43,7 +44,7 @@ class _VaultScreenState extends State<VaultScreen> {
   Future<void> _load() async {
     final photos = await VaultService.count(_view, VaultKind.photos);
     final files = await VaultService.count(_view, VaultKind.files);
-    final notes = (await VaultService.notes(_view)).length;
+    final notes = await VaultService.noteCount(_view);
     if (!mounted) return;
     setState(() {
       _photos = photos;
@@ -58,13 +59,8 @@ class _VaultScreenState extends State<VaultScreen> {
   }
 
   Future<void> _import(VaultKind kind) async {
-    final added = await VaultService.pickAndImport(widget.state, _view, kind);
+    await importIntoVault(context, widget.state, _view, kind);
     if (!mounted) return;
-    if (added > 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Added $added item${added == 1 ? '' : 's'}')),
-      );
-    }
     await _load();
   }
 
